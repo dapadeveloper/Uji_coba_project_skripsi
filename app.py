@@ -2,6 +2,7 @@ import os
 import tempfile
 import base64
 import cv2
+import gdown
 import streamlit as st
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -22,6 +23,8 @@ st.set_page_config(
 MODEL_PATH = "best.pt"
 PROFILE_IMAGE_PATH = "profile.jpeg"
 
+GOOGLE_DRIVE_FILE_ID = "1JhjScUvcVOKWdSOXYeloc2cCA-BXcJXp"
+
 PROFILE_NAME = "Naufal Daffa Abdu Al Hafidl"
 PROFILE_CAMPUS = "Universitas Gunadarma"
 
@@ -34,9 +37,6 @@ def get_image_base64(image_path):
         return base64.b64encode(img_file.read()).decode()
 
 
-# =========================================================
-# 4. CSS / STYLE UI
-# =========================================================
 # =========================================================
 # 4. CSS / STYLE UI
 # =========================================================
@@ -285,17 +285,28 @@ div[data-testid="stAlert"] {
 # =========================================================
 # 5. LOAD MODEL YOLO
 # =========================================================
+def download_model_from_drive():
+    if not os.path.exists(MODEL_PATH):
+        url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_FILE_ID}"
+
+        with st.spinner("Sedang mengunduh model best.pt dari Google Drive..."):
+            gdown.download(url, MODEL_PATH, quiet=False)
+
+    return os.path.exists(MODEL_PATH)
+
+
 @st.cache_resource
 def load_model():
-    if not os.path.exists(MODEL_PATH):
+    if not download_model_from_drive():
         return None
+
     return YOLO(MODEL_PATH)
 
 
 model = load_model()
 
 if model is None:
-    st.error("File best.pt tidak ditemukan. Letakkan best.pt satu folder dengan app.py.")
+    st.error("Model best.pt gagal diunduh dari Google Drive. Pastikan link Google Drive sudah Anyone with the link.")
     st.stop()
 
 
