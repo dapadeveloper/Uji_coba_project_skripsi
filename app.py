@@ -64,11 +64,6 @@ button[kind="header"],
     visibility: visible !important;
     opacity: 1 !important;
 }
-/* HEADER TETAP ADA */
-header {
-    background: transparent !important;
-    height: 3rem !important;
-}
 
 .stApp {
     background: #eef3f8;
@@ -283,7 +278,7 @@ div[data-testid="stAlert"] {
 
 
 # =========================================================
-# 5. LOAD MODEL YOLO
+# 5. DOWNLOAD DAN LOAD MODEL YOLO DARI GOOGLE DRIVE
 # =========================================================
 def download_model_from_drive():
     if not os.path.exists(MODEL_PATH):
@@ -567,6 +562,10 @@ elif menu == "Deteksi Video":
             helmet_ids = set()
             non_helmet_ids = set()
 
+            FRAME_DISPLAY_SKIP = 2
+            RESIZE_WIDTH = 640
+            RESIZE_HEIGHT = 360
+
             with st.spinner("Sedang memproses video..."):
                 while True:
                     ret, frame = cap.read()
@@ -574,11 +573,17 @@ elif menu == "Deteksi Video":
                     if not ret:
                         break
 
+                    frame_count += 1
+
+                    # Resize frame agar proses YOLO lebih ringan di Streamlit Cloud
+                    frame = cv2.resize(frame, (RESIZE_WIDTH, RESIZE_HEIGHT))
+
                     results = model.track(
                         frame,
                         conf=confidence,
                         persist=True,
                         tracker="bytetrack.yaml",
+                        vid_stride=1,
                         verbose=False
                     )
 
@@ -606,26 +611,27 @@ elif menu == "Deteksi Video":
                                 non_helmet_count += 1
                                 non_helmet_ids.add(track_id)
 
-                    annotated_rgb = cv2.cvtColor(
-                        annotated_frame,
-                        cv2.COLOR_BGR2RGB
-                    )
-
-                    frame_box.image(
-                        annotated_rgb,
-                        channels="RGB",
-                        use_container_width=True
-                    )
-
-                    with metric_box.container():
-                        show_metrics(helmet_count, non_helmet_count)
-
-                    frame_count += 1
-
-                    if total_frames > 0:
-                        progress_bar.progress(
-                            min(frame_count / total_frames, 1.0)
+                    # Tampilan Streamlit tidak perlu di-update setiap frame
+                    # supaya video tidak terlalu tersendat.
+                    if frame_count % FRAME_DISPLAY_SKIP == 0:
+                        annotated_rgb = cv2.cvtColor(
+                            annotated_frame,
+                            cv2.COLOR_BGR2RGB
                         )
+
+                        frame_box.image(
+                            annotated_rgb,
+                            channels="RGB",
+                            use_container_width=True
+                        )
+
+                        with metric_box.container():
+                            show_metrics(helmet_count, non_helmet_count)
+
+                        if total_frames > 0:
+                            progress_bar.progress(
+                                min(frame_count / total_frames, 1.0)
+                            )
 
             cap.release()
 
