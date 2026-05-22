@@ -9,3 +9,4 @@ torchaudio
 roboflow
 matplotlib
 gdown
+lapx
